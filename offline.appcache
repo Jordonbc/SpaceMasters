@@ -1,5 +1,5 @@
 ﻿CACHE MANIFEST
-#1476462338
+#1476478789
 data.js
 c2runtime.js
 jquery-2.1.1.min.js
@@ -33,6 +33,9 @@ images/rock-sheet0.png
 images/rock-sheet1.png
 images/rock-sheet2.png
 images/mousepos-sheet0.png
+images/shoot-sheet0.png
+images/pausebutton-sheet0.png
+images/upgradesbutton-sheet0.png
 media/explosion.m4a
 media/explosion.ogg
 media/lazersound.m4a
