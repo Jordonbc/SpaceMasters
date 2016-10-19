@@ -26333,6 +26333,123 @@ cr.behaviors.Fade = function(runtime)
 }());
 ;
 ;
+cr.behaviors.Flash = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var behaviorProto = cr.behaviors.Flash.prototype;
+	behaviorProto.Type = function(behavior, objtype)
+	{
+		this.behavior = behavior;
+		this.objtype = objtype;
+		this.runtime = behavior.runtime;
+	};
+	var behtypeProto = behaviorProto.Type.prototype;
+	behtypeProto.onCreate = function()
+	{
+	};
+	behaviorProto.Instance = function(type, inst)
+	{
+		this.type = type;
+		this.behavior = type.behavior;
+		this.inst = inst;				// associated object instance to modify
+		this.runtime = type.runtime;
+	};
+	var behinstProto = behaviorProto.Instance.prototype;
+	behinstProto.onCreate = function()
+	{
+		this.ontime = 0;
+		this.offtime = 0;
+		this.stage = 0;			// 0 = on, 1 = off
+		this.stagetimeleft = 0;
+		this.timeleft = 0;
+	};
+	behinstProto.saveToJSON = function ()
+	{
+		return {
+			"ontime": this.ontime,
+			"offtime": this.offtime,
+			"stage": this.stage,
+			"stagetimeleft": this.stagetimeleft,
+			"timeleft": this.timeleft
+		};
+	};
+	behinstProto.loadFromJSON = function (o)
+	{
+		this.ontime = o["ontime"];
+		this.offtime = o["offtime"];
+		this.stage = o["stage"];
+		this.stagetimeleft = o["stagetimeleft"];
+		this.timeleft = o["timeleft"];
+	};
+	behinstProto.tick = function ()
+	{
+		if (this.timeleft <= 0)
+			return;		// not flashing
+		var dt = this.runtime.getDt(this.inst);
+		this.timeleft -= dt;
+		if (this.timeleft <= 0)
+		{
+			this.timeleft = 0;
+			this.inst.visible = true;
+			this.runtime.redraw = true;
+			this.runtime.trigger(cr.behaviors.Flash.prototype.cnds.OnFlashEnded, this.inst);
+			return;
+		}
+		this.stagetimeleft -= dt;
+		if (this.stagetimeleft <= 0)
+		{
+			if (this.stage === 0)
+			{
+				this.inst.visible = false;
+				this.stage = 1;
+				this.stagetimeleft += this.offtime;
+			}
+			else
+			{
+				this.inst.visible = true;
+				this.stage = 0;
+				this.stagetimeleft += this.ontime;
+			}
+			this.runtime.redraw = true;
+		}
+	};
+	function Cnds() {};
+	Cnds.prototype.IsFlashing = function ()
+	{
+		return this.timeleft > 0;
+	};
+	Cnds.prototype.OnFlashEnded = function ()
+	{
+		return true;
+	};
+	behaviorProto.cnds = new Cnds();
+	function Acts() {};
+	Acts.prototype.Flash = function (on_, off_, dur_)
+	{
+		this.ontime = on_;
+		this.offtime = off_;
+		this.stage = 1;		// always start off
+		this.stagetimeleft = off_;
+		this.timeleft = dur_;
+		this.inst.visible = false;
+		this.runtime.redraw = true;
+	};
+	Acts.prototype.StopFlashing = function ()
+	{
+		this.timeleft = 0;
+		this.inst.visible = true;
+		this.runtime.redraw = true;
+		return;
+	};
+	behaviorProto.acts = new Acts();
+	function Exps() {};
+	behaviorProto.exps = new Exps();
+}());
+;
+;
 cr.behaviors.Timer = function(runtime)
 {
 	this.runtime = runtime;
@@ -26772,20 +26889,20 @@ cr.behaviors.solid = function(runtime)
 cr.getObjectRefTable = function () { return [
 	cr.plugins_.ScirraArcadeV4,
 	cr.plugins_.Audio,
-	cr.plugins_.Browser,
 	cr.plugins_.Button,
+	cr.plugins_.Browser,
 	cr.plugins_.Function,
-	cr.plugins_.gamepad,
+	cr.plugins_.Keyboard,
 	cr.plugins_.LocalStorage,
 	cr.plugins_.Mouse,
 	cr.plugins_.Kongregate,
-	cr.plugins_.Keyboard,
 	cr.plugins_.NodeWebkit,
-	cr.plugins_.sliderbar,
+	cr.plugins_.gamepad,
 	cr.plugins_.Touch,
-	cr.plugins_.Text,
 	cr.plugins_.Sprite,
 	cr.plugins_.win8,
+	cr.plugins_.Text,
+	cr.plugins_.sliderbar,
 	cr.behaviors.Fade,
 	cr.behaviors.solid,
 	cr.behaviors.Bullet,
@@ -26794,6 +26911,7 @@ cr.getObjectRefTable = function () { return [
 	cr.behaviors.scrollto,
 	cr.behaviors.bound,
 	cr.behaviors.Timer,
+	cr.behaviors.Flash,
 	cr.system_object.prototype.cnds.EveryTick,
 	cr.plugins_.Sprite.prototype.cnds.CompareX,
 	cr.plugins_.Mouse.prototype.exps.X,
@@ -26863,16 +26981,14 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.exps.Y,
 	cr.plugins_.Sprite.prototype.acts.SubInstanceVar,
 	cr.plugins_.Sprite.prototype.cnds.CompareInstanceVar,
+	cr.plugins_.Sprite.prototype.acts.SetInstanceVar,
+	cr.system_object.prototype.acts.SubVar,
+	cr.system_object.prototype.cnds.ForEach,
+	cr.plugins_.Sprite.prototype.acts.Spawn,
 	cr.plugins_.Sprite.prototype.acts.SetAngle,
 	cr.plugins_.Sprite.prototype.exps.Angle,
 	cr.plugins_.Sprite.prototype.acts.MoveToTop,
-	cr.plugins_.Sprite.prototype.acts.SetInstanceVar,
-	cr.system_object.prototype.acts.SubVar,
 	cr.system_object.prototype.acts.AddVar,
-	cr.plugins_.Mouse.prototype.cnds.IsButtonDown,
-	cr.plugins_.gamepad.prototype.cnds.IsButtonDown,
-	cr.plugins_.Sprite.prototype.acts.SetPosToObject,
-	cr.behaviors.Bullet.prototype.acts.SetAngleOfMotion,
 	cr.plugins_.Mouse.prototype.cnds.OnClick,
 	cr.behaviors.Timer.prototype.acts.StartTimer,
 	cr.plugins_.Keyboard.prototype.cnds.IsKeyDown,
@@ -26881,7 +26997,11 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.acts.RotateTowardPosition,
 	cr.plugins_.Touch.prototype.cnds.IsTouchingObject,
 	cr.plugins_.Sprite.prototype.cnds.IsVisible,
+	cr.plugins_.Sprite.prototype.acts.SetPosToObject,
+	cr.behaviors.Bullet.prototype.acts.SetAngleOfMotion,
 	cr.plugins_.Touch.prototype.cnds.OnTouchObject,
+	cr.plugins_.Mouse.prototype.cnds.IsButtonDown,
+	cr.plugins_.gamepad.prototype.cnds.IsButtonDown,
 	cr.plugins_.Mouse.prototype.cnds.OnRelease,
 	cr.plugins_.gamepad.prototype.cnds.OnButtonUp,
 	cr.behaviors.Timer.prototype.acts.StopTimer,
@@ -26891,11 +27011,14 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.acts.SetTimescale,
 	cr.plugins_.Function.prototype.cnds.OnFunction,
 	cr.plugins_.Sprite.prototype.acts.SetPos,
+	cr.plugins_.Sprite.prototype.acts.SetVisible,
+	cr.plugins_.Text.prototype.acts.SetFontColor,
+	cr.system_object.prototype.exps.rgb,
+	cr.plugins_.Sprite.prototype.acts.SetEffectEnabled,
 	cr.plugins_.Sprite.prototype.acts.AddInstanceVar,
 	cr.plugins_.Function.prototype.exps.Param,
 	cr.plugins_.Sprite.prototype.acts.MoveToBottom,
 	cr.system_object.prototype.acts.Wait,
-	cr.plugins_.Sprite.prototype.acts.SetVisible,
 	cr.system_object.prototype.exps.fps,
 	cr.system_object.prototype.cnds.LayerVisible,
 	cr.plugins_.Button.prototype.acts.SetInstanceVar,
@@ -26906,6 +27029,5 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Touch.prototype.exps.X,
 	cr.plugins_.Touch.prototype.exps.Y,
 	cr.system_object.prototype.cnds.Compare,
-	cr.plugins_.Button.prototype.acts.AddInstanceVar,
-	cr.plugins_.Sprite.prototype.acts.SetEffectEnabled
+	cr.plugins_.Button.prototype.acts.AddInstanceVar
 ];};
